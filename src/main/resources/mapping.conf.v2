@@ -1,0 +1,17 @@
+#----input and mapping rules definitions----
+
+# input define
+[input]
+include mapping.input
+
+# mapping rules define
+[context]
+expr    "source eq solo"
+include "mapping.rules"
+fn.source '{"type" : "echo" , "key" : "source"}'
+
+[context]
+expr    "country in CN, US || meta neq 0"
+include "mapping.rules"
+fn.country '{"type" : "echo" , "key" : "source"}'
+fn.meta '{"type" : "jsonmap" , "key" : "idfa"}'

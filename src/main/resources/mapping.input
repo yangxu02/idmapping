@@ -1,0 +1,14 @@
+{
+    "format" : "json",
+    "delim" : ",",
+    "source" : "solo",
+    "type" : "event",
+    "identities" : [
+        "imei", "androidid"
+    ],
+    "dimensions" : [
+        "imei", "androidid", "ip", "ua", "country", "timestamp", "eventname",
+        "cost", "meta", "brand"
+    ],
+    "refs" : {"source" : "solo", "cookie": "abc"}
+}

@@ -1,0 +1,69 @@
+#!/bin/bash
+#-----------------------------------------#
+# usage:
+# ./bin/mapper.console file conf
+#-----------------------------------------#
+
+MainClass="ConsoleApp"
+LibJar="$BaseDir/lib/*"
+Conf="$BaseDir/conf"
+JAVA="$JAVA_HOME/bin/java"
+
+MappingConf=""
+TextFile=""
+TextSource=""
+DataStore=hdfs
+
+function usage() {
+    echo "usage:"
+    echo "  -c: config file contains mapping rule"
+    echo "  -t: input file type(hdfs,local)"
+    echo "     hdfs: input file stored in hdfs"
+    echo "     local: input file stored in local dir and must in current dir"
+    echo "  -f: input file name"
+    echo "  -s: input file source, used when type is hdfs"
+}
+
+function parseOpt() {
+    cur=$1
+    test -z $cur && usage && exit -1 
+    while [ ! "x$cur" = "x" ]
+    do
+        case $cur in
+            -c|-C)
+                shift
+                MappingConf=$1
+                ;;
+            -f|-F)
+                shift
+                TextFile=$1
+                ;;
+            -s|-S)
+                shift
+                TextSource=$1
+                ;;
+            -t|-T)
+                shift
+                DataStore=$1
+                ;;
+            *)
+                ;;
+        esac
+        shift
+        cur=$1
+    done
+}
+
+function checkInput() {
+    [ ! -d $BaseDir ] && echo "app no found in dir $BaseDir" && exit -1
+    [ ! -d $JAVA_HOME ] && echo "java no found in dir $JAVA_HOME" && exit -2
+    [ -z $TextFile ] && echo "no given input text " && exit -3
+    [ "x$DataStore" = "xhdfs" ] && test -z $TextSource && echo "no given input source " && exit -4
+}
+
+parseOpt $*
+checkInput
+
+[ ! -z $MappingConf ] && ConfFile="-Ddmp.mapping.conf=$MappingConf"
+
+

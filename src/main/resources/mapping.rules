@@ -1,0 +1,144 @@
+{
+    "input" : {
+        "format" : "json",
+        "delim" : ",",
+        "source" : "solo",
+        "type" : "event",
+        "identities" : [
+            "imei", "androidid"
+        ],
+        "dimensions" : [
+            "imei", "androidid", "ip", "ua", "country", "timestamp", "eventname",
+            "cost", "meta", "brand"
+        ],
+        "refs" : {"source" : "solo", "cookie": "abc"}
+    },
+    "mapping" : {
+        "userId" : {
+            "fn" : { "type" : "random"}
+        },
+        "identities" : [
+            {
+                "name": "imei",
+                "dims" : [
+                    {"name" : "imei"}
+                ],
+                "lookup" : [
+                    {"table": "dmp_imei2user"}
+                ],
+                "writeback" : [
+                    {"table": "dmp_imei2user"},
+                    {"table": "dmp_imeimd52user", "hasher" : "md5"},
+                    {"table": "dmp_imeisha12user", "hasher" : "sha1"}
+                ]
+            },
+            {
+                "name": "idfa",
+                "dims" : [
+                    { "name" : "meta", "fn": {"type" : "jsonmap" , "key" : "idfa"}}
+                ],
+                "lookup" : [
+                    {"table": "dmp_idfa2user"}
+                ],
+                "writeback" : [
+                    {"table": "dmp_idfa2user"},
+                    {"table": "dmp_idfamd52user", "hasher" : "md5"},
+                    {"table": "dmp_idfasha12user", "hasher" : "sha1"}
+                ]
+            },
+            {
+                "name": "deviceid",
+                "dims" : [
+                    { "name" : "meta", "fn": {"type" : "jsonmap" , "key" : "deviceid"}}
+                ],
+                "lookup" : [
+                    {"table": "dmp_deviceid2user"},
+                    {"table": "dmp_imei2user"},
+                    {"table": "dmp_imeimd52user"},
+                    {"table": "dmp_imeisha12user"},
+                    {"table": "dmp_idfa2user"},
+                    {"table": "dmp_idfamd52user"},
+                    {"table": "dmp_idfasha12user"}
+                ],
+                "writeback" : [
+                    {"table": "dmp_deviceid2user"}
+                ]
+            }
+        ]
+    },
+    "output" : {
+        "event" : {
+            "table" : "dmp_user_event",
+            "rowKey" : {
+                "fn" : {
+                    "type" : "compound",
+                    "connector": "|",
+                    "primary": { "name" : "clickid" },
+                    "dims" : [
+                        { "name" : "eventname" },
+                        { "name" : "country" }
+                    ]
+                }
+            },
+            "columnFamily" : {
+                "family" : "f",
+                "cols" : [
+                    { "name" : "all", "column" : "o", "needStore" : true, "fn" : {"type" : "csvpack", "separator" : ","}},
+                    { "name" : "all", "column" : "l", "needStore" : true, "fn" : {"type" : "csvpack"}},
+                    { "name" : "imei", "column" : "i", "needStore" : true, "fn" : {"type" : "jsonpack"}},
+                    { "name" : "ip", "column" : "x", "needStore" : true, "fn" : {"type" : "echo"}}
+                ]
+            }
+        },
+        "devices" : {
+            "table" : "dmp_user_profile",
+            "columnFamily" : {
+                "family" : "dv",
+                "cols" : [
+		    { "name": "imei", "column": "imei"},
+                    { "name": "androidid", "column": "androidid"},
+                    { "name" : "meta", "column": "idfa", "fn": {"type" : "jsonmap" , "key" : "idfa"}},
+                    { "name": "brand", "column": "brand"}
+                ]
+            }
+        },
+        "profiles" : {
+            "table" : "dmp_user_profile",
+            "columnFamily" : {
+                "family" : "info",
+                "cols" : [
+                    { "name" : "country", "column" : "country"},
+                    { "name" : "age", "column" : "age", "valType" : "long"},
+                    { "name" : "meta", "column" : "income", "valType" : "long", "fn": {"type" : "jsonmap" , "key" : "price"}}
+                ]
+            }
+        },
+        "counters" : {
+            "table" : "dmp_user_profile",
+            "columnFamily" : "stats",
+            "timeField" : "timestamp",
+            "eventField" : "eventname",
+            "skips" : ["install", "startup"],
+            "extras" : [
+                {
+                    "dim" : "cost",
+                    "event" : "click",
+                    "name" : "click",
+                    "fns" : [
+                        {"type" : "scale" , "scale" : 100}
+                    ]
+                },
+                {
+                    "dim" : "meta",
+                    "event" : "purchase",
+                    "name" : "purchase",
+                    "fns" : [
+                        {"type" : "jsonmap" , "key" : "price"},
+                        {"type" : "scale" , "scale" : 100}
+                    ]
+                }
+            ]
+        }
+    }
+}
+
